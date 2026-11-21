@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Katrin & Greg · Mahlzeitenplaner</title>
+<style>
+  :root {
+    --teal: #2D9B8E;
+    --teal-dark: #217A70;
+    --teal-light: #E8F5F3;
+    --cream: #FDF8F2;
+    --warm: #F5E6D3;
+    --text: #2C3830;
+    --text-light: #6B7D76;
+    --border: #D8E8E5;
+    --white: #FFFFFF;
+    --red: #E05A4A;
+    --red-light: #FDF0EE;
+    --shadow: 0 2px 12px rgba(45,155,142,0.10);
+    --shadow-lg: 0 8px 32px rgba(45,155,142,0.15);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--cream); color: var(--text); min-height: 100vh; }
+
+  /* ── PASSWORD ── */
+  #pw-screen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; background: linear-gradient(135deg, var(--teal) 0%, #1a6b60 100%);
+  }
+  .pw-card {
+    background: var(--white); border-radius: 20px; padding: 48px 40px;
+    box-shadow: var(--shadow-lg); text-align: center; width: 360px; max-width: 90vw;
+  }
+  .pw-emoji { font-size: 48px; margin-bottom: 16px; }
+  .pw-title { font-size: 26px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .pw-sub { color: var(--text-light); font-size: 14px; margin-bottom: 32px; }
+  .pw-card input[type=password] {
+    width: 100%; padding: 14px 18px; border: 2px solid var(--border);
+    border-radius: var(--radius-sm); font-size: 18px; letter-spacing: 4px;
+    text-align: center; outline: none; transition: border-color .2s;
+    margin-bottom: 16px;
+  }
+  .pw-card input[type=password]:focus { border-color: var(--teal); }
+  .pw-card input[type=password].shake { animation: shake .35s; border-color: var(--red); }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 60%{transform:translateX(8px)} 80%{transform:translateX(-4px)} }
+  .pw-error { color: var(--red); font-size: 13px; margin-bottom: 12px; min-height: 18px; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 12px 24px; border: none; border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; cursor: pointer; transition: all .15s; }
+  .btn-primary { background: var(--teal); color: var(--white); width: 100%; justify-content: center; }
+  .btn-primary:hover { background: var(--teal-dark); }
+  .btn-ghost { background: transparent; color: var(--teal); border: 2px solid var(--teal); }
+  .btn-ghost:hover { background: var(--teal-light); }
+  .btn-danger { background: var(--red-light); color: var(--red); }
+  .btn-danger:hover { background: #fbe0dd; }
+  .btn-sm { padding: 7px 14px; font-size: 13px; }
+  .btn-icon { padding: 8px; border-radius: 8px; background: transparent; border: 1px solid var(--border); color: var(--text-light); cursor: pointer; font-size: 16px; transition: all .15s; }
+  .btn-icon:hover { background: var(--teal-light); color: var(--teal); border-color: var(--teal); }
+
+  /* ── APP SHELL ── */
+  #app { display: none; min-height: 100vh; }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--white); border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .header-inner {
+    max-width: 960px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; height: 60px;
+  }
+  .header-brand { font-size: 17px; font-weight: 700; color: var(--teal); letter-spacing: -0.3px; }
+  nav { display: flex; gap: 4px; }
+  .nav-btn {
+    padding: 8px 16px; border: none; background: transparent;
+    border-radius: var(--radius-sm); font-size: 14px; font-weight: 500;
+    color: var(--text-light); cursor: pointer; transition: all .15s;
+  }
+  .nav-btn.active { background: var(--teal-light); color: var(--teal); font-weight: 600; }
+  .nav-btn:hover:not(.active) { background: var(--warm); color: var(--text); }
+  .logout-btn { font-size: 13px; color: var(--text-light); background: none; border: none; cursor: pointer; padding: 6px 10px; border-radius: 6px; }
+  .logout-btn:hover { color: var(--text); background: var(--warm); }
+
+  /* ── VIEWS ── */
+  .view { display: none; max-width: 960px; margin: 0 auto; padding: 28px 20px 60px; }
+  .view.active { display: block; }
+
+  /* ── PLAN VIEW ── */
+  .plan-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+  }
+  .plan-title { font-size: 22px; font-weight: 700; }
+  .plan-range { color: var(--text-light); font-size: 14px; margin-top: 2px; }
+  .plan-nav { display: flex; gap: 8px; align-items: center; }
+  .plan-grid {
+    display: grid; grid-template-columns: 100px repeat(3, 1fr);
+    gap: 8px;
+  }
+  .plan-grid-header {
+    background: var(--teal); color: var(--white); border-radius: var(--radius-sm);
+    padding: 10px 12px; text-align: center; font-weight: 600; font-size: 13px;
+  }
+  .plan-grid-header .day-name { font-size: 15px; font-weight: 700; }
+  .plan-grid-header .day-date { font-size: 11px; opacity: .8; margin-top: 2px; }
+  .plan-row-label {
+    display: flex; align-items: center; justify-content: flex-end;
+    padding-right: 12px; font-size: 13px; font-weight: 600; color: var(--text-light);
+  }
+  .meal-cell {
+    background: var(--white); border-radius: var(--radius-sm); border: 1.5px solid var(--border);
+    padding: 10px; min-height: 70px; cursor: pointer; transition: all .15s;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .meal-cell:hover { border-color: var(--teal); box-shadow: var(--shadow); }
+  .meal-cell.filled { border-color: var(--teal); background: var(--teal-light); }
+  .meal-cell-name { font-size: 13px; font-weight: 600; color: var(--teal-dark); line-height: 1.3; }
+  .meal-cell-hint { font-size: 11px; color: var(--text-light); }
+  .meal-cell-empty { font-size: 12px; color: var(--text-light); display: flex; align-items: center; gap: 4px; }
+  .meal-cell-empty::before { content: '+'; font-size: 16px; color: var(--teal); font-weight: 300; }
+
+  @media (max-width: 600px) {
+    .plan-grid { grid-template-columns: 72px repeat(3, 1fr); gap: 5px; }
+    .plan-row-label { font-size: 11px; padding-right: 6px; }
+    .plan-grid-header { padding: 8px 6px; font-size: 11px; }
+    .plan-grid-header .day-name { font-size: 13px; }
+    .meal-cell { padding: 7px; min-height: 58px; }
+    .meal-cell-name { font-size: 11px; }
+  }
+
+  /* ── RECIPES VIEW ── */
+  .recipes-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+  .recipes-title { font-size: 22px; font-weight: 700; }
+  .filter-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+  .filter-tab {
+    padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 500;
+    border: 1.5px solid var(--border); background: var(--white); color: var(--text-light);
+    cursor: pointer; transition: all .15s;
+  }
+  .filter-tab.active { background: var(--teal); color: var(--white); border-color: var(--teal); }
+  .filter-tab:hover:not(.active) { border-color: var(--teal); color: var(--teal); }
+  .recipe-list { display: grid; gap: 10px; }
+  .recipe-card {
+    background: var(--white); border-radius: var(--radius); border: 1px solid var(--border);
+    padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .recipe-card-info { flex: 1; }
+  .recipe-card-name { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
+  .recipe-card-meta { font-size: 12px; color: var(--text-light); display: flex; gap: 10px; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-frueh { background: #FFF3E0; color: #E65100; }
+  .badge-lunch { background: #E3F2FD; color: #1565C0; }
+  .badge-abend { background: #F3E5F5; color: #6A1B9A; }
+  .recipe-card-actions { display: flex; gap: 6px; }
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--text-light); }
+  .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state-text { font-size: 15px; }
+
+  /* ── SHOPPING VIEW ── */
+  .shopping-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 12px; }
+  .shopping-title { font-size: 22px; font-weight: 700; }
+  .shopping-range { color: var(--text-light); font-size: 13px; margin-bottom: 20px; }
+  .shopping-group { margin-bottom: 24px; }
+  .shopping-group-title {
+    font-size: 13px; font-weight: 700; color: var(--text-light); letter-spacing: .5px;
+    text-transform: uppercase; margin-bottom: 8px; padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .shopping-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: var(--radius-sm);
+    cursor: pointer; transition: background .1s;
+  }
+  .shopping-item:hover { background: var(--warm); }
+  .shopping-item.checked { opacity: .45; }
+  .shopping-item.checked .shopping-item-name { text-decoration: line-through; }
+  .shopping-cb { width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+  .shopping-item.checked .shopping-cb { background: var(--teal); border-color: var(--teal); }
+  .shopping-cb-check { color: white; font-size: 11px; display: none; }
+  .shopping-item.checked .shopping-cb-check { display: block; }
+  .shopping-item-name { font-size: 14px; flex: 1; }
+  .shopping-item-amount { font-size: 13px; color: var(--text-light); }
+  .whatsapp-btn {
+    display: flex; align-items: center; gap: 8px;
+    background: #25D366; color: white; border: none; border-radius: var(--radius-sm);
+    padding: 12px 20px; font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: background .15s;
+  }
+  .whatsapp-btn:hover { background: #1eb858; }
+  .shopping-empty { text-align: center; padding: 40px 20px; color: var(--text-light); font-size: 14px; }
+  .shopping-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+
+  /* ── MODALS ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45); z-index: 200;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--white); border-radius: 16px;
+    width: 100%; max-width: 560px; max-height: 90vh;
+    overflow-y: auto; box-shadow: var(--shadow-lg);
+  }
+  .modal-header {
+    padding: 20px 24px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--white); z-index: 1;
+  }
+  .modal-title { font-size: 18px; font-weight: 700; }
+  .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-light); padding: 2px 6px; border-radius: 6px; }
+  .modal-close:hover { background: var(--warm); color: var(--text); }
+  .modal-body { padding: 20px 24px; }
+  .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* ── FORM ELEMENTS ── */
+  .form-group { margin-bottom: 18px; }
+  .form-label { display: block; font-size: 13px; font-weight: 600; color: var(--text-light); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .4px; }
+  .form-input, .form-select {
+    width: 100%; padding: 10px 14px; border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm); font-size: 15px; outline: none;
+    transition: border-color .15s; background: var(--white);
+  }
+  .form-input:focus, .form-select:focus { border-color: var(--teal); }
+  .category-radio { display: flex; gap: 8px; flex-wrap: wrap; }
+  .cat-option input { display: none; }
+  .cat-option label {
+    padding: 8px 16px; border-radius: 20px; border: 1.5px solid var(--border);
+    font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s;
+    color: var(--text-light);
+  }
+  .cat-option input:checked + label { background: var(--teal); color: var(--white); border-color: var(--teal); }
+
+  /* ── INGREDIENTS TABLE ── */
+  .ingredients-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+  .ingredient-row { display: grid; grid-template-columns: 1fr 80px 90px 32px; gap: 6px; align-items: center; }
+  .ingredient-row .form-input { padding: 8px 10px; font-size: 13px; }
+  .ingredient-del { background: none; border: none; color: var(--red); font-size: 18px; cursor: pointer; padding: 4px; border-radius: 4px; line-height: 1; }
+  .ingredient-del:hover { background: var(--red-light); }
+  .ingredient-header { display: grid; grid-template-columns: 1fr 80px 90px 32px; gap: 6px; }
+  .ingredient-header span { font-size: 11px; font-weight: 600; color: var(--text-light); text-transform: uppercase; letter-spacing: .4px; }
+
+  /* ── MEAL PICKER MODAL ── */
+  .meal-search { margin-bottom: 14px; }
+  .recipe-option {
+    padding: 12px 14px; border-radius: var(--radius-sm); cursor: pointer;
+    display: flex; align-items: center; gap: 10px; transition: background .1s;
+    border: 1.5px solid transparent;
+  }
+  .recipe-option:hover { background: var(--teal-light); border-color: var(--teal); }
+  .recipe-option-name { font-size: 14px; font-weight: 600; }
+  .recipe-option-ing { font-size: 12px; color: var(--text-light); }
+  .recipe-option-clear {
+    padding: 10px 14px; border-radius: var(--radius-sm); cursor: pointer;
+    color: var(--red); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px;
+  }
+  .recipe-option-clear:hover { background: var(--red-light); }
+  .meal-type-label { font-size: 12px; font-weight: 700; color: var(--text-light); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--text); color: var(--white); padding: 10px 20px; border-radius: 20px;
+    font-size: 13px; font-weight: 500; z-index: 999; opacity: 0; transition: all .25s;
+    white-space: nowrap;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- PASSWORD SCREEN -->
+<div id="pw-screen">
+  <div class="pw-card">
+    <div class="pw-emoji">🥗</div>
+    <div class="pw-title">Katrin & Greg</div>
+    <div class="pw-sub">Euer persönlicher Mahlzeitenplaner</div>
+    <input type="password" id="pw-input" placeholder="Passwort" autocomplete="off">
+    <div class="pw-error" id="pw-error"></div>
+    <button class="btn btn-primary" onclick="checkPassword()">Anmelden</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <div class="header-inner">
+      <div class="header-brand">🥗 Katrin & Greg</div>
+      <nav>
+        <button class="nav-btn active" onclick="showView('plan')">📅 Plan</button>
+        <button class="nav-btn" onclick="showView('recipes')">🍽 Rezepte</button>
+        <button class="nav-btn" onclick="showView('shopping')">🛒 Einkauf</button>
+      </nav>
+      <button class="logout-btn" onclick="logout()">Abmelden</button>
+    </div>
+  </header>
+
+  <!-- PLAN VIEW -->
+  <div id="view-plan" class="view active">
+    <div class="plan-header">
+      <div>
+        <div class="plan-title">Mahlzeitenplan</div>
+        <div class="plan-range" id="plan-range-label"></div>
+      </div>
+      <div class="plan-nav">
+        <button class="btn btn-ghost btn-sm" onclick="navigatePlan(-1)">← Zurück</button>
+        <button class="btn btn-ghost btn-sm" onclick="goToToday()">Heute</button>
+        <button class="btn btn-ghost btn-sm" onclick="navigatePlan(1)">Weiter →</button>
+      </div>
+    </div>
+    <div class="plan-grid" id="plan-grid"></div>
+  </div>
+
+  <!-- RECIPES VIEW -->
+  <div id="view-recipes" class="view">
+    <div class="recipes-header">
+      <div class="recipes-title">Rezepte</div>
+      <button class="btn btn-primary btn-sm" onclick="openRecipeForm(null)">+ Neues Rezept</button>
+    </div>
+    <div class="filter-tabs" id="filter-tabs">
+      <div class="filter-tab active" onclick="setFilter('Alle')">Alle</div>
+      <div class="filter-tab" onclick="setFilter('Frühstück')">🌅 Frühstück</div>
+      <div class="filter-tab" onclick="setFilter('Lunch')">☀️ Lunch</div>
+      <div class="filter-tab" onclick="setFilter('Abendessen')">🌙 Abendessen</div>
+    </div>
+    <div class="recipe-list" id="recipe-list"></div>
+  </div>
+
+  <!-- SHOPPING VIEW -->
+  <div id="view-shopping" class="view">
+    <div class="shopping-header">
+      <div class="shopping-title">Einkaufsliste</div>
+    </div>
+    <div class="shopping-range" id="shopping-range-label"></div>
+    <div class="shopping-actions">
+      <button class="whatsapp-btn" onclick="shareWhatsApp()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Per WhatsApp teilen
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="resetChecked()">Liste zurücksetzen</button>
+    </div>
+    <div id="shopping-content"></div>
+  </div>
+</div>
+
+<!-- MODAL: Rezept bearbeiten/erstellen -->
+<div class="modal-overlay" id="recipe-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="recipe-modal-title">Rezept hinzufügen</div>
+      <button class="modal-close" onclick="closeRecipeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="recipe-id">
+      <div class="form-group">
+        <label class="form-label">Name des Gerichts</label>
+        <input type="text" class="form-input" id="recipe-name" placeholder="z.B. Pasta Pomodoro">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mahlzeit</label>
+        <div class="category-radio">
+          <div class="cat-option"><input type="radio" name="category" id="cat-fr" value="Frühstück"><label for="cat-fr">🌅 Frühstück</label></div>
+          <div class="cat-option"><input type="radio" name="category" id="cat-lu" value="Lunch"><label for="cat-lu">☀️ Lunch</label></div>
+          <div class="cat-option"><input type="radio" name="category" id="cat-ab" value="Abendessen"><label for="cat-ab">🌙 Abendessen</label></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Zutaten (für 2 Personen)</label>
+        <div class="ingredient-header">
+          <span>Zutat</span><span>Menge</span><span>Einheit</span><span></span>
+        </div>
+        <div class="ingredients-list" id="ingredients-list"></div>
+        <button class="btn btn-ghost btn-sm" onclick="addIngredientRow()" style="margin-top:6px">+ Zutat hinzufügen</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notizen (optional)</label>
+        <input type="text" class="form-input" id="recipe-notes" placeholder="z.B. glutenfrei, Lieblingsrezept...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeRecipeModal()">Abbrechen</button>
+      <button class="btn btn-primary" onclick="saveRecipe()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Mahlzeit auswählen -->
+<div class="modal-overlay" id="meal-modal">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="meal-modal-title">Mahlzeit wählen</div>
+        <div class="meal-type-label" id="meal-modal-sub"></div>
+      </div>
+      <button class="modal-close" onclick="closeMealModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="text" class="form-input meal-search" id="meal-search" placeholder="Rezept suchen…" oninput="renderMealOptions()">
+      <div id="meal-options"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── STARTER RECIPES ────────────────────────────────────────────────────────
+const STARTER_RECIPES = [
+  // FRÜHSTÜCK
+  { id:'r01', name:'Skyr mit Beeren & zuckerfreiem Müsli', category:'Frühstück', notes:'Katrins Favorit',
+    ingredients:[{name:'Skyr',amount:'300',unit:'g'},{name:'Gemischte Beeren',amount:'150',unit:'g'},{name:'Zuckerfreies Müsli',amount:'50',unit:'g'},{name:'Honig',amount:'1',unit:'TL'}]},
+  { id:'r02', name:'Griechischer Joghurt mit Mango & Nüssen', category:'Frühstück', notes:'',
+    ingredients:[{name:'Griechischer Joghurt',amount:'300',unit:'g'},{name:'Mango',amount:'1',unit:'Stück'},{name:'Gemischte Nüsse',amount:'30',unit:'g'}]},
+  { id:'r03', name:'Griechischer Joghurt mit Banane & Honig', category:'Frühstück', notes:'',
+    ingredients:[{name:'Griechischer Joghurt',amount:'300',unit:'g'},{name:'Banane',amount:'2',unit:'Stück'},{name:'Honig',amount:'2',unit:'TL'}]},
+  { id:'r04', name:'Overnight Oats mit Apfel & Zimt', category:'Frühstück', notes:'Abends vorbereiten',
+    ingredients:[{name:'Haferflocken',amount:'80',unit:'g'},{name:'Mandelmilch',amount:'200',unit:'ml'},{name:'Apfel',amount:'1',unit:'Stück'},{name:'Zimt',amount:'1',unit:'TL'},{name:'Honig',amount:'1',unit:'TL'}]},
+  { id:'r05', name:'Müslibrötchen mit Marmelade', category:'Frühstück', notes:'Gregs Favorit',
+    ingredients:[{name:'Müslibrötchen',amount:'4',unit:'Stück'},{name:'Marmelade',amount:'4',unit:'EL'},{name:'Butter',amount:'20',unit:'g'}]},
+  { id:'r06', name:'Avocado-Toast mit Ei & Chili', category:'Frühstück', notes:'',
+    ingredients:[{name:'Vollkornbrot',amount:'4',unit:'Scheiben'},{name:'Avocado',amount:'1',unit:'Stück'},{name:'Eier',amount:'2',unit:'Stück'},{name:'Zitrone',amount:'0,5',unit:'Stück'},{name:'Chiliflocken',amount:'1',unit:'TL'}]},
+  { id:'r07', name:'Smoothie Bowl mit Beeren', category:'Frühstück', notes:'',
+    ingredients:[{name:'Tiefkühlbeeren',amount:'200',unit:'g'},{name:'Banane',amount:'1',unit:'Stück'},{name:'Griechischer Joghurt',amount:'100',unit:'g'},{name:'Granola',amount:'50',unit:'g'},{name:'Frische Beeren',amount:'80',unit:'g'}]},
+  { id:'r08', name:'Rührei mit Kräutern & Vollkornbrot', category:'Frühstück', notes:'',
+    ingredients:[{name:'Eier',amount:'4',unit:'Stück'},{name:'Milch',amount:'4',unit:'EL'},{name:'Schnittlauch',amount:'0,5',unit:'Bund'},{name:'Vollkornbrot',amount:'4',unit:'Scheiben'},{name:'Butter',amount:'1',unit:'EL'}]},
+  { id:'r09', name:'Joghurt-Parfait mit Granola & Kiwi', category:'Frühstück', notes:'',
+    ingredients:[{name:'Griechischer Joghurt',amount:'300',unit:'g'},{name:'Granola',amount:'60',unit:'g'},{name:'Kiwi',amount:'2',unit:'Stück'},{name:'Honig',amount:'1',unit:'EL'}]},
+  { id:'r10', name:'Overnight Oats mit Heidelbeeren & Mandeln', category:'Frühstück', notes:'',
+    ingredients:[{name:'Haferflocken',amount:'80',unit:'g'},{name:'Mandelmilch',amount:'200',unit:'ml'},{name:'Heidelbeeren',amount:'150',unit:'g'},{name:'Mandeln',amount:'30',unit:'g'},{name:'Ahornsirup',amount:'1',unit:'EL'}]},
+  // LUNCH
+  { id:'r11', name:'Pasta Pomodoro', category:'Lunch', notes:'Klassisch italienisch',
+    ingredients:[{name:'Pasta',amount:'200',unit:'g'},{name:'Tomaten (Dose)',amount:'400',unit:'g'},{name:'Knoblauch',amount:'2',unit:'Zehen'},{name:'Basilikum',amount:'0,5',unit:'Bund'},{name:'Olivenöl',amount:'3',unit:'EL'}]},
+  { id:'r12', name:'Pasta Pesto & Kirschtomaten', category:'Lunch', notes:'',
+    ingredients:[{name:'Pasta',amount:'200',unit:'g'},{name:'Pesto',amount:'4',unit:'EL'},{name:'Kirschtomaten',amount:'200',unit:'g'},{name:'Parmesan',amount:'40',unit:'g'}]},
+  { id:'r13', name:'Caprese-Salat mit Ciabatta', category:'Lunch', notes:'',
+    ingredients:[{name:'Mozzarella',amount:'250',unit:'g'},{name:'Tomaten',amount:'4',unit:'Stück'},{name:'Basilikum',amount:'0,5',unit:'Bund'},{name:'Ciabatta',amount:'1',unit:'Stück'},{name:'Olivenöl',amount:'3',unit:'EL'},{name:'Balsamico',amount:'2',unit:'EL'}]},
+  { id:'r14', name:'Minestrone', category:'Lunch', notes:'',
+    ingredients:[{name:'Zucchini',amount:'1',unit:'Stück'},{name:'Karotten',amount:'2',unit:'Stück'},{name:'Sellerie',amount:'2',unit:'Stangen'},{name:'Tomaten (Dose)',amount:'400',unit:'g'},{name:'Weiße Bohnen (Dose)',amount:'1',unit:'Dose'},{name:'Pasta',amount:'80',unit:'g'},{name:'Gemüsebrühe',amount:'1',unit:'L'},{name:'Knoblauch',amount:'2',unit:'Zehen'}]},
+  { id:'r15', name:'Bruschetta mit Tomaten & Basilikum', category:'Lunch', notes:'',
+    ingredients:[{name:'Ciabatta',amount:'1',unit:'Stück'},{name:'Tomaten',amount:'4',unit:'Stück'},{name:'Knoblauch',amount:'2',unit:'Zehen'},{name:'Basilikum',amount:'0,5',unit:'Bund'},{name:'Olivenöl',amount:'3',unit:'EL'}]},
+  { id:'r16', name:'Miso-Suppe mit Tofu & Wakame', category:'Lunch', notes:'Leicht asiatisch',
+    ingredients:[{name:'Miso-Paste',amount:'3',unit:'EL'},{name:'Tofu',amount:'200',unit:'g'},{name:'Wakame (getrocknet)',amount:'10',unit:'g'},{name:'Frühlingszwiebeln',amount:'3',unit:'Stück'},{name:'Gemüsebrühe',amount:'1',unit:'L'}]},
+  { id:'r17', name:'Edamame-Bowl mit Sesam-Dressing', category:'Lunch', notes:'',
+    ingredients:[{name:'Edamame',amount:'300',unit:'g'},{name:'Reis',amount:'160',unit:'g'},{name:'Gurke',amount:'1',unit:'Stück'},{name:'Karotte',amount:'1',unit:'Stück'},{name:'Sesam',amount:'2',unit:'EL'},{name:'Sojasoße',amount:'3',unit:'EL'},{name:'Sesamöl',amount:'1',unit:'EL'}]},
+  { id:'r18', name:'Zucchini-Fritters mit Joghurt-Dip', category:'Lunch', notes:'',
+    ingredients:[{name:'Zucchini',amount:'2',unit:'Stück'},{name:'Eier',amount:'2',unit:'Stück'},{name:'Mehl',amount:'4',unit:'EL'},{name:'Feta',amount:'100',unit:'g'},{name:'Griechischer Joghurt',amount:'150',unit:'g'},{name:'Minze',amount:'0,5',unit:'Bund'}]},
+  { id:'r19', name:'Linsen-Dhal mit Fladenbrot', category:'Lunch', notes:'',
+    ingredients:[{name:'Rote Linsen',amount:'200',unit:'g'},{name:'Kokosmilch',amount:'400',unit:'ml'},{name:'Tomaten',amount:'2',unit:'Stück'},{name:'Knoblauch',amount:'3',unit:'Zehen'},{name:'Ingwer',amount:'1',unit:'Stück'},{name:'Curry-Paste',amount:'2',unit:'EL'},{name:'Fladenbrot',amount:'2',unit:'Stück'}]},
+  { id:'r20', name:'Tomaten-Mozzarella-Wrap', category:'Lunch', notes:'',
+    ingredients:[{name:'Wraps',amount:'4',unit:'Stück'},{name:'Mozzarella',amount:'250',unit:'g'},{name:'Tomaten',amount:'2',unit:'Stück'},{name:'Rucola',amount:'100',unit:'g'},{name:'Pesto',amount:'3',unit:'EL'}]},
+  // ABENDESSEN
+  { id:'r21', name:'Gedünstetes Gemüse mit Schafskäse', category:'Abendessen', notes:'Katrins Liebling',
+    ingredients:[{name:'Zucchini',amount:'1',unit:'Stück'},{name:'Paprika',amount:'2',unit:'Stück'},{name:'Aubergine',amount:'1',unit:'Stück'},{name:'Kirschtomaten',amount:'200',unit:'g'},{name:'Schafskäse',amount:'200',unit:'g'},{name:'Olivenöl',amount:'3',unit:'EL'},{name:'Kräuter der Provence',amount:'2',unit:'TL'}]},
+  { id:'r22', name:'Pasta Cacio e Pepe', category:'Abendessen', notes:'Nur 4 Zutaten – Klassiker!',
+    ingredients:[{name:'Pasta (Spaghetti)',amount:'200',unit:'g'},{name:'Pecorino',amount:'80',unit:'g'},{name:'Parmesan',amount:'40',unit:'g'},{name:'Schwarzer Pfeffer',amount:'2',unit:'TL'}]},
+  { id:'r23', name:'Pasta Funghi', category:'Abendessen', notes:'',
+    ingredients:[{name:'Pasta',amount:'200',unit:'g'},{name:'Champignons',amount:'300',unit:'g'},{name:'Sahne',amount:'200',unit:'ml'},{name:'Knoblauch',amount:'2',unit:'Zehen'},{name:'Thymian',amount:'2',unit:'TL'},{name:'Parmesan',amount:'40',unit:'g'}]},
+  { id:'r24', name:'Gemüse-Gnocchi mit Salbeibutter', category:'Abendessen', notes:'',
+    ingredients:[{name:'Gnocchi',amount:'500',unit:'g'},{name:'Butter',amount:'60',unit:'g'},{name:'Salbei',amount:'10',unit:'Blätter'},{name:'Parmesan',amount:'60',unit:'g'},{name:'Zitrone',amount:'1',unit:'Stück'}]},
+  { id:'r25', name:'Veggie-Pizza Margherita', category:'Abendessen', notes:'',
+    ingredients:[{name:'Pizzateig (fertig)',amount:'1',unit:'Stück'},{name:'Tomatensoße',amount:'200',unit:'ml'},{name:'Mozzarella',amount:'250',unit:'g'},{name:'Basilikum',amount:'0,5',unit:'Bund'},{name:'Olivenöl',amount:'2',unit:'EL'}]},
+  { id:'r26', name:'Auberginen-Parmigiana', category:'Abendessen', notes:'',
+    ingredients:[{name:'Auberginen',amount:'2',unit:'Stück'},{name:'Tomatensoße',amount:'400',unit:'ml'},{name:'Mozzarella',amount:'250',unit:'g'},{name:'Parmesan',amount:'60',unit:'g'},{name:'Basilikum',amount:'0,5',unit:'Bund'}]},
+  { id:'r27', name:'Zucchini-Risotto', category:'Abendessen', notes:'',
+    ingredients:[{name:'Risottoreis',amount:'200',unit:'g'},{name:'Zucchini',amount:'2',unit:'Stück'},{name:'Gemüsebrühe',amount:'800',unit:'ml'},{name:'Parmesan',amount:'60',unit:'g'},{name:'Weißwein',amount:'100',unit:'ml'},{name:'Schalotten',amount:'2',unit:'Stück'},{name:'Butter',amount:'30',unit:'g'}]},
+  { id:'r28', name:'Gemüse-Lasagne', category:'Abendessen', notes:'',
+    ingredients:[{name:'Lasagneplatten',amount:'12',unit:'Stück'},{name:'Zucchini',amount:'1',unit:'Stück'},{name:'Aubergine',amount:'1',unit:'Stück'},{name:'Tomatensoße',amount:'600',unit:'ml'},{name:'Béchamelsauce',amount:'500',unit:'ml'},{name:'Mozzarella',amount:'200',unit:'g'},{name:'Parmesan',amount:'60',unit:'g'}]},
+  { id:'r29', name:'Pad Thai vegetarisch', category:'Abendessen', notes:'Leicht asiatisch',
+    ingredients:[{name:'Reisnudeln',amount:'200',unit:'g'},{name:'Tofu',amount:'200',unit:'g'},{name:'Eier',amount:'2',unit:'Stück'},{name:'Sojasprossen',amount:'100',unit:'g'},{name:'Frühlingszwiebeln',amount:'3',unit:'Stück'},{name:'Erdnüsse',amount:'50',unit:'g'},{name:'Pad-Thai-Soße',amount:'4',unit:'EL'},{name:'Limette',amount:'1',unit:'Stück'}]},
+  { id:'r30', name:'Gebratener Reis mit Gemüse & Ei', category:'Abendessen', notes:'',
+    ingredients:[{name:'Reis',amount:'200',unit:'g'},{name:'Eier',amount:'2',unit:'Stück'},{name:'Karotten',amount:'2',unit:'Stück'},{name:'Erbsen',amount:'100',unit:'g'},{name:'Frühlingszwiebeln',amount:'3',unit:'Stück'},{name:'Sojasoße',amount:'4',unit:'EL'},{name:'Sesamöl',amount:'2',unit:'EL'}]},
+  { id:'r31', name:'Vegetarischer Ramen', category:'Abendessen', notes:'',
+    ingredients:[{name:'Ramen-Nudeln',amount:'200',unit:'g'},{name:'Miso-Paste',amount:'2',unit:'EL'},{name:'Tofu',amount:'200',unit:'g'},{name:'Pak Choi',amount:'2',unit:'Stück'},{name:'Eier',amount:'2',unit:'Stück'},{name:'Nori-Blätter',amount:'2',unit:'Stück'},{name:'Gemüsebrühe',amount:'1',unit:'L'},{name:'Sesamöl',amount:'1',unit:'EL'}]},
+  { id:'r32', name:'Ofengemüse mit Schafskäse & Kräutern', category:'Abendessen', notes:'',
+    ingredients:[{name:'Paprika',amount:'2',unit:'Stück'},{name:'Zucchini',amount:'1',unit:'Stück'},{name:'Rote Zwiebeln',amount:'2',unit:'Stück'},{name:'Kirschtomaten',amount:'200',unit:'g'},{name:'Schafskäse',amount:'200',unit:'g'},{name:'Olivenöl',amount:'4',unit:'EL'},{name:'Kräuter der Provence',amount:'2',unit:'TL'},{name:'Balsamico',amount:'2',unit:'EL'}]},
+
+  // ── FRÜHSTÜCK NEU (r33–r42) ───────────────────────────────────────────────
+  { id:'r33', name:'French Toast mit Beeren', category:'Frühstück', notes:'ca. 15 Min.',
+    ingredients:[{name:'Toastbrot',amount:'4',unit:'Scheiben'},{name:'Eier',amount:'2',unit:'Stück'},{name:'Milch',amount:'100',unit:'ml'},{name:'Zimt',amount:'1',unit:'TL'},{name:'Butter',amount:'1',unit:'EL'},{name:'Gemischte Beeren',amount:'150',unit:'g'},{name:'Puderzucker',amount:'1',unit:'TL'}]},
+  { id:'r34', name:'Pancakes mit Ahornsirup', category:'Frühstück', notes:'ca. 20 Min.',
+    ingredients:[{name:'Mehl',amount:'150',unit:'g'},{name:'Eier',amount:'2',unit:'Stück'},{name:'Milch',amount:'200',unit:'ml'},{name:'Backpulver',amount:'1',unit:'TL'},{name:'Butter',amount:'1',unit:'EL'},{name:'Ahornsirup',amount:'4',unit:'EL'}]},
+  { id:'r35', name:'Quark mit Honig & Walnüssen', category:'Frühstück', notes:'5 Min.',
+    ingredients:[{name:'Magerquark',amount:'250',unit:'g'},{name:'Honig',amount:'2',unit:'EL'},{name:'Walnüsse',amount:'40',unit:'g'},{name:'Zimt',amount:'0,5',unit:'TL'}]},
+  { id:'r36', name:'Porridge mit Zimt-Apfel', category:'Frühstück', notes:'10 Min.',
+    ingredients:[{name:'Haferflocken',amount:'80',unit:'g'},{name:'Milch',amount:'300',unit:'ml'},{name:'Apfel',amount:'1',unit:'Stück'},{name:'Zimt',amount:'1',unit:'TL'},{name:'Honig',amount:'1',unit:'EL'}]},
+  { id:'r37', name:'Toast mit Ricotta & Honig', category:'Frühstück', notes:'5 Min.',
+    ingredients:[{name:'Vollkorntoast',amount:'4',unit:'Scheiben'},{name:'Ricotta',amount:'150',unit:'g'},{name:'Honig',amount:'2',unit:'EL'},{name:'Walnüsse',amount:'30',unit:'g'}]},
+  { id:'r38', name:'Joghurt mit Granatapfel & Pistazien', category:'Frühstück', notes:'5 Min.',
+    ingredients:[{name:'Griechischer Joghurt',amount:'300',unit:'g'},{name:'Granatapfel',amount:'1',unit:'Stück'},{name:'Pistazien',amount:'30',unit:'g'},{name:'Honig',amount:'1',unit:'EL'}]},
+  { id:'r39', name:'Crêpes mit Zitrone & Zucker', category:'Frühstück', notes:'ca. 20 Min.',
+    ingredients:[{name:'Mehl',amount:'120',unit:'g'},{name:'Eier',amount:'2',unit:'Stück'},{name:'Milch',amount:'250',unit:'ml'},{name:'Butter',amount:'1',unit:'EL'},{name:'Zitrone',amount:'1',unit:'Stück'},{name:'Zucker',amount:'2',unit:'EL'}]},
+  { id:'r40', name:'Skyr-Bowl mit Kiwi & Kokos', category:'Frühstück', notes:'5 Min.',
+    ingredients:[{name:'Skyr',amount:'300',unit:'g'},{name:'Kiwi',amount:'2',unit:'Stück'},{name:'Kokosraspeln',amount:'2',unit:'EL'},{name:'Honig',amount:'1',unit:'EL'},{name:'Mandeln',amount:'20',unit:'g'}]},
+  { id:'r41', name:'Bircher Müsli', category:'Frühstück', notes:'Abends vorbereiten, 5 Min.',
+    ingredients:[{name:'Haferflocken',amount:'80',unit:'g'},{name:'Apfelsaft',amount:'150',unit:'ml'},{name:'Griechischer Joghurt',amount:'150',unit:'g'},{name:'Apfel',amount:'1',unit:'Stück'},{name:'Haselnüsse',amount:'30',unit:'g'},{name:'Honig',amount:'1',unit:'EL'}]},
+  { id:'r42', name:'Rührei mit Avocado auf Toast', category:'Frühstück', notes:'10 Min.',
+    ingredients:[{name:'Eier',amount:'4',unit:'Stück'},{name:'Avocado',amount:'1',unit:'Stück'},{name:'Vollkorntoast',amount:'4',unit:'Scheiben'},{name:'Butter',amount:'1',unit:'EL'},{name:'Zitrone',amount:'0,5',unit:'Stück'}]},
+
+  // ── LUNCH NEU (r43–r52) ───────────────────────────────────────────────────
+  { id:'r43', name:'Griechischer Salat mit Feta', category:'Lunch', notes:'10 Min.',
+    ingredients:[{name:'Gurke',amount:'1',unit:'Stück'},{name:'Tomaten',amount:'3',unit:'Stück'},{name:'Rote Zwiebel',amount:'1',unit:'Stück'},{name:'Oliven',amount:'80',unit:'g'},{name:'Feta',amount:'150',unit:'g'},{name:'Olivenöl',amount:'3',unit:'EL'},{name:'Oregano',amount:'1',unit:'TL'}]},
+  { id:'r44', name:'Hummus-Wrap mit Gemüse', category:'Lunch', notes:'10 Min.',
+    ingredients:[{name:'Wraps',amount:'4',unit:'Stück'},{name:'Hummus',amount:'200',unit:'g'},{name:'Paprika',amount:'1',unit:'Stück'},{name:'Gurke',amount:'0,5',unit:'Stück'},{name:'Rucola',amount:'50',unit:'g'},{name:'Kirschtomaten',amount:'100',unit:'g'}]},
+  { id:'r45', name:'Panzanella (Toskanischer Brotsalat)', category:'Lunch', notes:'15 Min.',
+    ingredients:[{name:'Ciabatta (altbacken)',amount:'200',unit:'g'},{name:'Tomaten',amount:'4',unit:'Stück'},{name:'Basilikum',amount:'0,5',unit:'Bund'},{name:'Rote Zwiebel',amount:'1',unit:'Stück'},{name:'Olivenöl',amount:'4',unit:'EL'},{name:'Balsamico',amount:'2',unit:'EL'}]},
+  { id:'r46', name:'Kalte Sesam-Nudeln', category:'Lunch', notes:'20 Min. – asiatisch',
+    ingredients:[{name:'Spaghetti',amount:'200',unit:'g'},{name:'Tahin',amount:'3',unit:'EL'},{name:'Sojasoße',amount:'3',unit:'EL'},{name:'Sesamöl',amount:'2',unit:'EL'},{name:'Knoblauch',amount:'1',unit:'Zehe'},{name:'Gurke',amount:'1',unit:'Stück'},{name:'Sesam',amount:'2',unit:'EL'},{name:'Limette',amount:'1',unit:'Stück'}]},
+  { id:'r47', name:'Burrata mit Rucola & Tomaten', category:'Lunch', notes:'5 Min.',
+    ingredients:[{name:'Burrata',amount:'2',unit:'Stück'},{name:'Rucola',amount:'100',unit:'g'},{name:'Kirschtomaten',amount:'200',unit:'g'},{name:'Olivenöl',amount:'3',unit:'EL'},{name:'Balsamico',amount:'2',unit:'EL'},{name:'Ciabatta',amount:'1',unit:'Stück'}]},
+  { id:'r48', name:'Tomatensuppe mit Basilikum', category:'Lunch', notes:'20 Min.',
+    ingredients:[{name:'Tomaten (Dose)',amount:'800',unit:'g'},{name:'Gemüsebrühe',amount:'300',unit:'ml'},{name:'Knoblauch',amount:'2',unit:'Zehen'},{name:'Basilikum',amount:'0,5',unit:'Bund'},{name:'Olivenöl',amount:'3',unit:'EL'},{name:'Sahne',amount:'50',unit:'ml'}]},
+  { id:'r49', name:'Quinoa-Bowl mit Avocado', category:'Lunch', notes:'20 Min.',
+    ingredients:[{name:'Quinoa',amount:'160',unit:'g'},{name:'Avocado',amount:'1',unit:'Stück'},{name:'Kirschtomaten',amount:'150',unit:'g'},{name:'Gurke',amount:'0,5',unit:'Stück'},{name:'Zitrone',amount:'1',unit:'Stück'},{name:'Olivenöl',amount:'2',unit:'EL'},{name:'Sesam',amount:'1',unit:'EL'}]},
+  { id:'r50', name:'Thai-Erdnuss-Nudeln', category:'Lunch', notes:'20 Min.',
+    ingredients:[{name:'Reisnudeln',amount:'200',unit:'g'},{name:'Erdnussbutter',amount:'4',unit:'EL'},{name:'Sojasoße',amount:'3',unit:'EL'},{name:'Limette',amount:'1',unit:'Stück'},{name:'Knoblauch',amount:'1',unit:'Zehe'},{name:'Gurke',amount:'0,5',unit:'Stück'},{name:'Frühlingszwiebeln',amount:'2',unit:'Stück'},{name:'Erdnüsse',amount:'40',unit:'g'}]},
+  { id:'r51', name:'Zucchini-Minz-Suppe', category:'Lunch', notes:'20 Min.',
+    ingredients:[{name:'Zucchini',amount:'3',unit:'Stück'},{name:'Gemüsebrühe',amount:'700',unit:'ml'},{name:'Knoblauch',amount:'2',unit:'Zehen'},{name:'Minze',amount:'0,5',unit:'Bund'},{name:'Olivenöl',amount:'2',unit:'EL'},{name:'Griechischer Joghurt',amount:'100',unit:'g'}]},
+  { id:'r52', name:'Avocado-Salat mit Tomaten & Fladenbrot', category:'Lunch', notes:'10 Min.',
+    ingredients:[{name:'Avocado',amount:'2',unit:'Stück'},{name:'Tomaten',amount:'2',unit:'Stück'},{name:'Rote Zwiebel',amount:'0,5',unit:'Stück'},{name:'Limette',amount:'1',unit:'Stück'},{name:'Olivenöl',amount:'2',unit:'EL'},{name:'Fladenbrot',amount:'2',unit:'Stück'}]},
+
+  // ── ABENDESSEN NEU (r53–r62) ──────────────────────────────────────────────
+  { id:'r53', name:'Shakshuka', category:'Abendessen', notes:'25 Min. – orientalisch',
+    ingredients:[{name:'Tomaten (Dose)',amount:'800',unit:'g'},{name:'Eier',amount:'4',unit:'Stück'},{name:'Paprika',amount:'1',unit:'Stück'},{name:'Knoblauch',amount:'3',unit:'Zehen'},{name:'Kreuzkümmel',amount:'1',unit:'TL'},{name:'Paprikapulver',amount:'1',unit:'TL'},{name:'Olivenöl',amount:'3',unit:'EL'},{name:'Feta',amount:'80',unit:'g'},{name:'Brot',amount:'4',unit:'Scheiben'}]},
+  { id:'r54', name:'Tortellini mit Pesto & Parmesan', category:'Abendessen', notes:'15 Min.',
+    ingredients:[{name:'Tortellini (frisch)',amount:'500',unit:'g'},{name:'Pesto',amount:'4',unit:'EL'},{name:'Parmesan',amount:'60',unit:'g'},{name:'Kirschtomaten',amount:'150',unit:'g'},{name:'Olivenöl',amount:'1',unit:'EL'}]},
+  { id:'r55', name:'Penne all\'Arrabbiata', category:'Abendessen', notes:'20 Min.',
+    ingredients:[{name:'Penne',amount:'200',unit:'g'},{name:'Tomaten (Dose)',amount:'400',unit:'g'},{name:'Knoblauch',amount:'3',unit:'Zehen'},{name:'Chiliflocken',amount:'1,5',unit:'TL'},{name:'Olivenöl',amount:'3',unit:'EL'},{name:'Petersilie',amount:'0,5',unit:'Bund'}]},
+  { id:'r56', name:'Gemüse-Frittata', category:'Abendessen', notes:'20 Min.',
+    ingredients:[{name:'Eier',amount:'6',unit:'Stück'},{name:'Zucchini',amount:'1',unit:'Stück'},{name:'Paprika',amount:'1',unit:'Stück'},{name:'Frühlingszwiebeln',amount:'3',unit:'Stück'},{name:'Parmesan',amount:'40',unit:'g'},{name:'Olivenöl',amount:'2',unit:'EL'}]},
+  { id:'r57', name:'Flammkuchen mit Crème fraîche & Zwiebeln', category:'Abendessen', notes:'20 Min.',
+    ingredients:[{name:'Flammkuchenteig (fertig)',amount:'2',unit:'Stück'},{name:'Crème fraîche',amount:'200',unit:'g'},{name:'Rote Zwiebeln',amount:'2',unit:'Stück'},{name:'Rucola',amount:'50',unit:'g'},{name:'Parmesan',amount:'40',unit:'g'}]},
+  { id:'r58', name:'Tofu-Teriyaki mit Reis', category:'Abendessen', notes:'25 Min. – asiatisch',
+    ingredients:[{name:'Tofu (fest)',amount:'300',unit:'g'},{name:'Reis',amount:'160',unit:'g'},{name:'Sojasoße',amount:'4',unit:'EL'},{name:'Honig',amount:'2',unit:'EL'},{name:'Ingwer',amount:'1',unit:'Stück'},{name:'Knoblauch',amount:'2',unit:'Zehen'},{name:'Sesamöl',amount:'1',unit:'EL'},{name:'Sesam',amount:'2',unit:'EL'},{name:'Pak Choi',amount:'2',unit:'Stück'}]},
+  { id:'r59', name:'Käse-Omelette mit grünem Salat', category:'Abendessen', notes:'15 Min.',
+    ingredients:[{name:'Eier',amount:'6',unit:'Stück'},{name:'Gruyère',amount:'80',unit:'g'},{name:'Schnittlauch',amount:'0,5',unit:'Bund'},{name:'Butter',amount:'2',unit:'EL'},{name:'Feldsalat',amount:'100',unit:'g'},{name:'Olivenöl',amount:'1',unit:'EL'}]},
+  { id:'r60', name:'Spinat-Ricotta-Pasta', category:'Abendessen', notes:'20 Min.',
+    ingredients:[{name:'Pasta',amount:'200',unit:'g'},{name:'Ricotta',amount:'200',unit:'g'},{name:'Blattspinat (TK)',amount:'200',unit:'g'},{name:'Parmesan',amount:'50',unit:'g'},{name:'Knoblauch',amount:'2',unit:'Zehen'},{name:'Butter',amount:'1',unit:'EL'},{name:'Muskatnuss',amount:'1',unit:'Prise'}]},
+  { id:'r61', name:'Spaghetti Aglio Olio e Peperoncino', category:'Abendessen', notes:'15 Min. – Klassiker',
+    ingredients:[{name:'Spaghetti',amount:'200',unit:'g'},{name:'Olivenöl',amount:'6',unit:'EL'},{name:'Knoblauch',amount:'4',unit:'Zehen'},{name:'Chiliflocken',amount:'1',unit:'TL'},{name:'Petersilie',amount:'0,5',unit:'Bund'},{name:'Parmesan',amount:'40',unit:'g'}]},
+  { id:'r62', name:'Miso-Aubergine mit Reis', category:'Abendessen', notes:'25 Min. – asiatisch',
+    ingredients:[{name:'Auberginen',amount:'2',unit:'Stück'},{name:'Reis',amount:'160',unit:'g'},{name:'Miso-Paste',amount:'3',unit:'EL'},{name:'Honig',amount:'1',unit:'EL'},{name:'Sojasoße',amount:'2',unit:'EL'},{name:'Sesamöl',amount:'1',unit:'EL'},{name:'Sesam',amount:'2',unit:'EL'}]}
+];
+
+// ── INGREDIENT CATEGORIES ────────────────────────────────────────────────────
+const CATEGORIES_KEYWORDS = {
+  'Gemüse': ['zucchini','paprika','aubergine','tomate','tomaten','kirschtomaten','karotte','karotten','sellerie','pak choi','frühlingszwiebel','frühlingszwiebeln','zwiebel','zwiebeln','knoblauch','ingwer','gurke','rucola','sojasprossen','erbsen','edamame','minze','basilikum','salbei','schnittlauch','thymian','wakame'],
+  'Obst': ['banane','mango','beeren','apfel','kiwi','limette','zitrone','heidelbeeren','erdbeeren'],
+  'Milchprodukte & Eier': ['joghurt','skyr','parmesan','mozzarella','schafskäse','feta','sahne','butter','eier','ei','pecorino','milch','béchamel'],
+  'Getreide, Brot & Nudeln': ['pasta','spaghetti','reis','risottoreis','mehl','brot','brötchen','müslibrötchen','haferflocken','granola','müsli','gnocchi','lasagneplatten','wraps','fladenbrot','ciabatta','ramen','reisnudeln','pizzateig','nudeln'],
+  'Hülsenfrüchte & Tofu': ['linsen','bohnen','tofu','edamame'],
+  'Gewürze, Öle & Soßen': ['olivenöl','sesamöl','sojasoße','pesto','miso','balsamico','curry','chiliflocken','pfeffer','zimt','kräuter','honig','ahornsirup','pad-thai','tomatensoße','gemüsebrühe','kokosmilch','weißwein','nori'],
+  'Nüsse & Samen': ['nüsse','mandeln','erdnüsse','sesam'],
+  'Sonstiges': []
+};
+
+function categorizeIngredient(name) {
+  const n = name.toLowerCase();
+  for (const [cat, keywords] of Object.entries(CATEGORIES_KEYWORDS)) {
+    if (cat === 'Sonstiges') continue;
+    if (keywords.some(k => {
+      const idx = n.indexOf(k);
+      if (idx === -1) return false;
+      const before = idx === 0 || /[\s,()/-]/.test(n[idx - 1]);
+      const after = idx + k.length >= n.length || /[\s,()/-]/.test(n[idx + k.length]);
+      return before && after;
+    })) return cat;
+  }
+  return 'Sonstiges';
+}
+
+// ── LOCAL STORAGE ────────────────────────────────────────────────────────────
+const SEED_VERSION = '2';
+const DB = {
+  getRecipes() { return JSON.parse(localStorage.getItem('mp_recipes') || 'null'); },
+  saveRecipes(r) { localStorage.setItem('mp_recipes', JSON.stringify(r)); },
+  getMealPlan() { return JSON.parse(localStorage.getItem('mp_mealplan') || '{}'); },
+  saveMealPlan(p) { localStorage.setItem('mp_mealplan', JSON.stringify(p)); },
+  getSeedVersion() { return localStorage.getItem('mp_seed_v') || '0'; },
+  setSeedVersion(v) { localStorage.setItem('mp_seed_v', v); },
+  getChecked() { return JSON.parse(localStorage.getItem('mp_checked') || '[]'); },
+  saveChecked(c) { localStorage.setItem('mp_checked', JSON.stringify(c)); }
+};
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let recipes = [];
+let mealPlan = {};
+let checkedItems = [];
+let currentView = 'plan';
+let planStart = getStartOfThreeDayWindow(new Date());
+let currentFilter = 'Alle';
+let mealModalCtx = null; // {dateKey, meal}
+let editingRecipeId = null;
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+function init() {
+  if (DB.getSeedVersion() !== SEED_VERSION) {
+    const existing = DB.getRecipes() || [];
+    const existingIds = new Set(existing.map(r => r.id));
+    const toAdd = STARTER_RECIPES.filter(r => !existingIds.has(r.id));
+    DB.saveRecipes([...existing, ...toAdd]);
+    DB.setSeedVersion(SEED_VERSION);
+  }
+  recipes = DB.getRecipes() || STARTER_RECIPES;
+  mealPlan = DB.getMealPlan();
+  checkedItems = DB.getChecked();
+  renderPlan();
+  renderRecipes();
+  renderShopping();
+}
+
+// ── PASSWORD ──────────────────────────────────────────────────────────────────
+function checkPassword() {
+  const val = document.getElementById('pw-input').value;
+  if (val.toUpperCase() === 'LOVE') {
+    sessionStorage.setItem('mp_auth', '1');
+    document.getElementById('pw-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    init();
+  } else {
+    const inp = document.getElementById('pw-input');
+    const err = document.getElementById('pw-error');
+    err.textContent = 'Falsches Passwort. Versuch es nochmal 💚';
+    inp.classList.add('shake');
+    inp.value = '';
+    setTimeout(() => inp.classList.remove('shake'), 400);
+  }
+}
+document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') checkPassword(); });
+
+function logout() {
+  sessionStorage.removeItem('mp_auth');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('pw-screen').style.display = 'flex';
+  document.getElementById('pw-input').value = '';
+  document.getElementById('pw-error').textContent = '';
+}
+
+// Auto-login if session active
+if (sessionStorage.getItem('mp_auth') === '1') {
+  document.getElementById('pw-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  init();
+}
+
+// ── DATE UTILS ────────────────────────────────────────────────────────────────
+function toDateKey(date) {
+  return date.toISOString().split('T')[0];
+}
+function addDays(date, n) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+function getStartOfThreeDayWindow(date) {
+  const epoch = new Date(Date.UTC(2026, 0, 1));
+  const diff = Math.floor((date - epoch) / (1000 * 60 * 60 * 24));
+  const windowIndex = Math.floor(diff / 3);
+  const d = new Date(epoch);
+  d.setDate(d.getDate() + windowIndex * 3);
+  return d;
+}
+const DE_DAYS = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+const DE_MONTHS = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+const DE_MONTHS_FULL = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+function formatDateShort(d) { return `${d.getDate()}. ${DE_MONTHS[d.getMonth()]}`; }
+function formatDateFull(d) { return `${d.getDate()}. ${DE_MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`; }
+function formatDayName(d) { return DE_DAYS[d.getDay()]; }
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+function navigatePlan(direction) {
+  planStart = addDays(planStart, direction * 3);
+  renderPlan();
+  renderShopping();
+}
+function goToToday() {
+  planStart = getStartOfThreeDayWindow(new Date());
+  renderPlan();
+  renderShopping();
+}
+
+// ── VIEWS ─────────────────────────────────────────────────────────────────────
+function showView(name) {
+  currentView = name;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach((b, i) => {
+    const views = ['plan','recipes','shopping'];
+    b.classList.toggle('active', views[i] === name);
+  });
+  if (name === 'plan') renderPlan();
+  if (name === 'recipes') renderRecipes();
+  if (name === 'shopping') renderShopping();
+}
+
+// ── PLAN RENDER ───────────────────────────────────────────────────────────────
+function renderPlan() {
+  const days = [planStart, addDays(planStart,1), addDays(planStart,2)];
+  const d0 = formatDateShort(days[0]);
+  const d2 = formatDateShort(days[2]);
+  document.getElementById('plan-range-label').textContent = `${d0} – ${d2}`;
+  document.getElementById('shopping-range-label').textContent = `Zutaten für ${d0} – ${d2}`;
+
+  const grid = document.getElementById('plan-grid');
+  const meals = ['Frühstück','Lunch','Abendessen'];
+  const mealKeys = ['breakfast','lunch','dinner'];
+  const mealEmoji = ['🌅','☀️','🌙'];
+
+  let html = '<div></div>'; // corner
+  days.forEach(d => {
+    html += `<div class="plan-grid-header"><div class="day-name">${formatDayName(d)}</div><div class="day-date">${formatDateShort(d)}</div></div>`;
+  });
+
+  meals.forEach((meal, mi) => {
+    html += `<div class="plan-row-label">${mealEmoji[mi]} ${meal}</div>`;
+    days.forEach(d => {
+      const key = toDateKey(d);
+      const recipeId = mealPlan[key]?.[mealKeys[mi]];
+      const recipe = recipeId ? recipes.find(r => r.id === recipeId) : null;
+      if (recipe) {
+        html += `<div class="meal-cell filled" onclick="openMealModal('${key}','${mealKeys[mi]}')">
+          <div class="meal-cell-name">${recipe.name}</div>
+          <div class="meal-cell-hint">${recipe.ingredients.length} Zutaten</div>
+        </div>`;
+      } else {
+        html += `<div class="meal-cell" onclick="openMealModal('${key}','${mealKeys[mi]}')">
+          <div class="meal-cell-empty">Mahlzeit wählen</div>
+        </div>`;
+      }
+    });
+  });
+
+  grid.innerHTML = html;
+}
+
+// ── RECIPES RENDER ─────────────────────────────────────────────────────────────
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-tab').forEach(t => {
+    const label = t.textContent.replace(/[🌅☀️🌙]/g,'').trim();
+    t.classList.toggle('active', label === f || (f==='Alle' && label==='Alle'));
+  });
+  renderRecipes();
+}
+
+function renderRecipes() {
+  const filtered = currentFilter === 'Alle' ? recipes : recipes.filter(r => r.category === currentFilter);
+  const list = document.getElementById('recipe-list');
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🍽</div><div class="empty-state-text">Keine Rezepte gefunden.<br>Füge dein erstes Rezept hinzu!</div></div>`;
+    return;
+  }
+  const badgeClass = { 'Frühstück':'badge-frueh', 'Lunch':'badge-lunch', 'Abendessen':'badge-abend' };
+  list.innerHTML = filtered.map(r => `
+    <div class="recipe-card">
+      <div class="recipe-card-info">
+        <div class="recipe-card-name">${r.name}</div>
+        <div class="recipe-card-meta">
+          <span class="badge ${badgeClass[r.category]}">${r.category}</span>
+          <span>${r.ingredients.length} Zutaten</span>
+          ${r.notes ? `<span>📝 ${r.notes}</span>` : ''}
+        </div>
+      </div>
+      <div class="recipe-card-actions">
+        <button class="btn-icon" title="Bearbeiten" onclick="openRecipeForm('${r.id}')">✏️</button>
+        <button class="btn-icon" title="Löschen" onclick="deleteRecipe('${r.id}')">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── RECIPE FORM ───────────────────────────────────────────────────────────────
+function openRecipeForm(id) {
+  editingRecipeId = id;
+  const modal = document.getElementById('recipe-modal');
+  const recipe = id ? recipes.find(r => r.id === id) : null;
+
+  document.getElementById('recipe-modal-title').textContent = recipe ? 'Rezept bearbeiten' : 'Neues Rezept';
+  document.getElementById('recipe-id').value = id || '';
+  document.getElementById('recipe-name').value = recipe ? recipe.name : '';
+  document.getElementById('recipe-notes').value = recipe ? (recipe.notes || '') : '';
+
+  const cat = recipe ? recipe.category : 'Frühstück';
+  document.querySelectorAll('input[name=category]').forEach(radio => {
+    radio.checked = radio.value === cat;
+  });
+
+  const ingList = document.getElementById('ingredients-list');
+  ingList.innerHTML = '';
+  const ings = recipe ? recipe.ingredients : [{name:'',amount:'',unit:''}];
+  ings.forEach(ing => addIngredientRow(ing));
+
+  modal.classList.add('open');
+  document.getElementById('recipe-name').focus();
+}
+
+function closeRecipeModal() {
+  document.getElementById('recipe-modal').classList.remove('open');
+  editingRecipeId = null;
+}
+
+function addIngredientRow(ing = {name:'',amount:'',unit:''}) {
+  const list = document.getElementById('ingredients-list');
+  const row = document.createElement('div');
+  row.className = 'ingredient-row';
+  row.innerHTML = `
+    <input type="text" class="form-input ing-name" placeholder="z.B. Pasta" value="${ing.name||''}">
+    <input type="text" class="form-input ing-amount" placeholder="200" value="${ing.amount||''}">
+    <input type="text" class="form-input ing-unit" placeholder="g / Stück" value="${ing.unit||''}">
+    <button class="ingredient-del" onclick="this.parentElement.remove()">×</button>
+  `;
+  list.appendChild(row);
+}
+
+function saveRecipe() {
+  const name = document.getElementById('recipe-name').value.trim();
+  if (!name) { showToast('Bitte einen Namen eingeben'); return; }
+  const category = document.querySelector('input[name=category]:checked')?.value;
+  if (!category) { showToast('Bitte eine Kategorie wählen'); return; }
+  const notes = document.getElementById('recipe-notes').value.trim();
+  const ingredients = [];
+  document.querySelectorAll('.ingredient-row').forEach(row => {
+    const n = row.querySelector('.ing-name').value.trim();
+    const a = row.querySelector('.ing-amount').value.trim();
+    const u = row.querySelector('.ing-unit').value.trim();
+    if (n) ingredients.push({ name: n, amount: a, unit: u });
+  });
+
+  const id = editingRecipeId || ('r' + Date.now());
+  const recipe = { id, name, category, notes, ingredients };
+
+  if (editingRecipeId) {
+    recipes = recipes.map(r => r.id === editingRecipeId ? recipe : r);
+  } else {
+    recipes = [...recipes, recipe];
+  }
+  DB.saveRecipes(recipes);
+  closeRecipeModal();
+  renderRecipes();
+  renderPlan();
+  showToast(editingRecipeId ? 'Rezept aktualisiert ✓' : 'Rezept gespeichert ✓');
+}
+
+function deleteRecipe(id) {
+  if (!confirm('Dieses Rezept wirklich löschen?')) return;
+  recipes = recipes.filter(r => r.id !== id);
+  // also remove from meal plan
+  Object.keys(mealPlan).forEach(k => {
+    ['breakfast','lunch','dinner'].forEach(m => {
+      if (mealPlan[k]?.[m] === id) mealPlan[k][m] = null;
+    });
+  });
+  DB.saveRecipes(recipes);
+  DB.saveMealPlan(mealPlan);
+  renderRecipes();
+  renderPlan();
+  showToast('Rezept gelöscht');
+}
+
+// ── MEAL PICKER ───────────────────────────────────────────────────────────────
+const mealLabels = { breakfast:'Frühstück', lunch:'Lunch', dinner:'Abendessen' };
+const mealCatMap = { breakfast:'Frühstück', lunch:'Lunch', dinner:'Abendessen' };
+
+function openMealModal(dateKey, mealKey) {
+  mealModalCtx = { dateKey, mealKey };
+  const dayDate = new Date(dateKey + 'T00:00:00');
+  document.getElementById('meal-modal-title').textContent = formatDateFull(dayDate);
+  document.getElementById('meal-modal-sub').textContent = mealLabels[mealKey];
+  document.getElementById('meal-search').value = '';
+  renderMealOptions();
+  document.getElementById('meal-modal').classList.add('open');
+  document.getElementById('meal-search').focus();
+}
+
+function closeMealModal() {
+  document.getElementById('meal-modal').classList.remove('open');
+  mealModalCtx = null;
+}
+
+function renderMealOptions() {
+  const q = document.getElementById('meal-search').value.trim().toLowerCase();
+  const cat = mealCatMap[mealModalCtx?.mealKey];
+  let filtered = recipes.filter(r => r.category === cat);
+  if (q) filtered = filtered.filter(r => r.name.toLowerCase().includes(q));
+
+  const current = mealPlan[mealModalCtx?.dateKey]?.[mealModalCtx?.mealKey];
+  const container = document.getElementById('meal-options');
+
+  let html = '';
+  if (current) {
+    html += `<div class="recipe-option-clear" onclick="clearMeal()">✕ Mahlzeit entfernen</div>`;
+  }
+  if (!filtered.length) {
+    html += `<div style="color:var(--text-light);font-size:13px;padding:12px;">Kein Rezept gefunden.</div>`;
+  }
+  filtered.forEach(r => {
+    const isSelected = r.id === current;
+    html += `<div class="recipe-option${isSelected?' meal-cell filled':''}" onclick="selectMeal('${r.id}')">
+      <div style="flex:1">
+        <div class="recipe-option-name">${r.name}</div>
+        <div class="recipe-option-ing">${r.ingredients.slice(0,3).map(i=>i.name).join(', ')}${r.ingredients.length>3?'…':''}</div>
+      </div>
+      ${isSelected ? '<span style="color:var(--teal);font-size:18px;">✓</span>' : ''}
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function selectMeal(recipeId) {
+  const { dateKey, mealKey } = mealModalCtx;
+  if (!mealPlan[dateKey]) mealPlan[dateKey] = {};
+  mealPlan[dateKey][mealKey] = recipeId;
+  DB.saveMealPlan(mealPlan);
+  closeMealModal();
+  renderPlan();
+  renderShopping();
+  showToast('Mahlzeit eingetragen ✓');
+}
+
+function clearMeal() {
+  const { dateKey, mealKey } = mealModalCtx;
+  if (mealPlan[dateKey]) mealPlan[dateKey][mealKey] = null;
+  DB.saveMealPlan(mealPlan);
+  closeMealModal();
+  renderPlan();
+  renderShopping();
+  showToast('Mahlzeit entfernt');
+}
+
+// ── SHOPPING LIST ─────────────────────────────────────────────────────────────
+function getShoppingIngredients() {
+  const days = [planStart, addDays(planStart,1), addDays(planStart,2)];
+  const aggregated = {}; // key: "name|unit" → {name, unit, amounts:[]}
+
+  days.forEach(d => {
+    const key = toDateKey(d);
+    const dayPlan = mealPlan[key] || {};
+    ['breakfast','lunch','dinner'].forEach(m => {
+      const rid = dayPlan[m];
+      if (!rid) return;
+      const recipe = recipes.find(r => r.id === rid);
+      if (!recipe) return;
+      recipe.ingredients.forEach(ing => {
+        const k = ing.name.toLowerCase() + '|' + (ing.unit||'').toLowerCase();
+        if (!aggregated[k]) aggregated[k] = { name: ing.name, unit: ing.unit, amounts: [] };
+        if (ing.amount) aggregated[k].amounts.push(ing.amount);
+      });
+    });
+  });
+
+  return Object.values(aggregated).map(item => {
+    const nums = item.amounts.map(a => parseFloat(a.replace(',','.'))).filter(n => !isNaN(n));
+    const total = nums.length ? nums.reduce((a,b)=>a+b,0) : null;
+    const amountStr = total !== null
+      ? (Number.isInteger(total) ? total : Math.round(total*10)/10) + (item.unit ? ' ' + item.unit : '')
+      : (item.amounts.join('+') + (item.unit ? ' ' + item.unit : ''));
+    return { name: item.name, amount: amountStr, category: categorizeIngredient(item.name) };
+  });
+}
+
+function renderShopping() {
+  const items = getShoppingIngredients();
+  const content = document.getElementById('shopping-content');
+
+  if (!items.length) {
+    content.innerHTML = `<div class="shopping-empty">Noch keine Mahlzeiten im Plan.<br>Fülle den 3-Tage-Plan aus, dann erscheint hier deine Einkaufsliste. 🛒</div>`;
+    return;
+  }
+
+  const grouped = {};
+  items.forEach(item => {
+    if (!grouped[item.category]) grouped[item.category] = [];
+    grouped[item.category].push(item);
+  });
+
+  const catOrder = ['Gemüse','Obst','Milchprodukte & Eier','Getreide, Brot & Nudeln','Hülsenfrüchte & Tofu','Nüsse & Samen','Gewürze, Öle & Soßen','Sonstiges'];
+  let html = '';
+  catOrder.forEach(cat => {
+    if (!grouped[cat]?.length) return;
+    html += `<div class="shopping-group"><div class="shopping-group-title">${cat}</div>`;
+    grouped[cat].forEach((item, i) => {
+      const ckKey = cat + '|' + item.name;
+      const isChecked = checkedItems.includes(ckKey);
+      html += `<div class="shopping-item${isChecked?' checked':''}" onclick="toggleCheck('${ckKey}')">
+        <div class="shopping-cb"><span class="shopping-cb-check">✓</span></div>
+        <div class="shopping-item-name">${item.name}</div>
+        <div class="shopping-item-amount">${item.amount}</div>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  content.innerHTML = html;
+}
+
+function toggleCheck(key) {
+  if (checkedItems.includes(key)) {
+    checkedItems = checkedItems.filter(k => k !== key);
+  } else {
+    checkedItems = [...checkedItems, key];
+  }
+  DB.saveChecked(checkedItems);
+  renderShopping();
+}
+
+function resetChecked() {
+  checkedItems = [];
+  DB.saveChecked([]);
+  renderShopping();
+  showToast('Liste zurückgesetzt');
+}
+
+function shareWhatsApp() {
+  const items = getShoppingIngredients();
+  if (!items.length) { showToast('Keine Einträge in der Einkaufsliste'); return; }
+
+  const d0 = formatDateShort(planStart);
+  const d2 = formatDateShort(addDays(planStart, 2));
+  const catOrder = ['Gemüse','Obst','Milchprodukte & Eier','Getreide, Brot & Nudeln','Hülsenfrüchte & Tofu','Nüsse & Samen','Gewürze, Öle & Soßen','Sonstiges'];
+
+  const grouped = {};
+  items.forEach(item => {
+    if (!grouped[item.category]) grouped[item.category] = [];
+    grouped[item.category].push(item);
+  });
+
+  let text = `🛒 Einkaufsliste ${d0} – ${d2}\n`;
+  catOrder.forEach(cat => {
+    if (!grouped[cat]?.length) return;
+    text += `\n*${cat}*\n`;
+    grouped[cat].forEach(item => {
+      text += `☐ ${item.name} – ${item.amount}\n`;
+    });
+  });
+  text += `\n_Erstellt mit Katrin & Greg Mahlzeitenplaner_ 🥗`;
+
+  const url = 'https://wa.me/?text=' + encodeURIComponent(text);
+  window.open(url, '_blank');
+}
+
+// ── CLOSE MODALS ON OVERLAY CLICK ─────────────────────────────────────────────
+document.getElementById('recipe-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('recipe-modal')) closeRecipeModal();
+});
+document.getElementById('meal-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('meal-modal')) closeMealModal();
+});
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── KEYBOARD SHORTCUTS ────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeRecipeModal();
+    closeMealModal();
+  }
+});
+
+// ── START ─────────────────────────────────────────────────────────────────────
+// (auto-login and init handled above; password screen is visible by default)
+</script>
+</body>
+</html>
